@@ -1,0 +1,155 @@
+------------------------------ 
+Per 19.03.2026 16:19:42,85 
+Server time: {'serverTime': 1773926383775}
+----------------------------------------------------------------------
+SYNCING OPEN POSITIONS...
+----------------------------------------------------------------------
+Checking BTCUSDT
+OCO STATUS: ALL_DONE
+POSITION CLOSED DETECTED FOR BTCUSDT
+----------------------------------------------------------------------
+REMOVED FROM open_positions.json -> BTCUSDT
+OPEN POSITIONS COUNT: 0
+----------------------------------------------------------------------
+SCANNING: BTCUSDT
+Close         : 69300.0200
+EMA20         : 70679.7233
+EMA50         : 71808.8938
+EMA200        : 71711.2714
+RSI           : 24.21
+ATR           : 1267.7706
+ADX           : 34.75
+Volume        : 48.2171
+Vol_MA20      : 73.6833
+Trend OK      : False
+EMA OK        : False
+RSI OK        : False
+Volume OK     : False
+ADX OK        : True
+BUY SIGNAL    : False
+NO TRADE - Conditions not met
+----------------------------------------------------------------------
+SCANNING: ETHUSDT
+Close         : 2126.7300
+EMA20         : 2184.6584
+EMA50         : 2223.1283
+EMA200        : 2176.3877
+RSI           : 29.08
+ATR           : 737.2556
+ADX           : 40.35
+Volume        : 362.6993
+Vol_MA20      : 1001.4392
+Trend OK      : False
+EMA OK        : False
+RSI OK        : False
+Volume OK     : False
+ADX OK        : True
+BUY SIGNAL    : False
+NO TRADE - Conditions not met
+----------------------------------------------------------------------
+SCANNING: SOLUSDT
+Close         : 88.0500
+EMA20         : 89.8420
+EMA50         : 91.0866
+EMA200        : 90.0728
+RSI           : 31.91
+ATR           : 0.9829
+ADX           : 50.19
+Volume        : 2540.7730
+Vol_MA20      : 12426.7731
+Trend OK      : False
+EMA OK        : False
+RSI OK        : False
+Volume OK     : False
+ADX OK        : True
+BUY SIGNAL    : False
+NO TRADE - Conditions not met
+----------------------------------------------------------------------
+------------------------------ 
+Per 19.03.2026 17:09:05,93 
+Server time: {'serverTime': 1773929346768}
+----------------------------------------------------------------------
+NO OPEN POSITIONS TO SYNC
+----------------------------------------------------------------------
+OPEN POSITIONS COUNT: 0
+----------------------------------------------------------------------
+SCANNING: BTCUSDT
+Close         : 69717.4800
+EMA20         : 70638.1661
+EMA50         : 71748.7765
+EMA200        : 71686.1894
+RSI           : 33.27
+ATR           : 1239.3078
+ADX           : 35.50
+Volume        : 19.2674
+Vol_MA20      : 74.2738
+Trend OK      : False
+Momentum OK   : False
+RSI OK        : False
+Volume OK     : False
+ADX OK        : True
+BUY SIGNAL    : False
+NO TRADE - Conditions not met
+----------------------------------------------------------------------
+SCANNING: ETHUSDT
+Close         : 2132.0900
+EMA20         : 2180.5024
+EMA50         : 2219.9301
+EMA200        : 2175.9102
+RSI           : 30.75
+ATR           : 756.8340
+ADX           : 39.29
+Volume        : 175.4397
+Vol_MA20      : 952.2684
+Trend OK      : False
+Momentum OK   : False
+RSI OK        : False
+Volume OK     : False
+ADX OK        : True
+BUY SIGNAL    : False
+NO TRADE - Conditions not met
+----------------------------------------------------------------------
+------------------------------ 
+Per 19.03.2026 17:15:10,96 
+Server time: {'serverTime': 1773929711864}
+----------------------------------------------------------------------
+NO OPEN POSITIONS TO SYNC
+----------------------------------------------------------------------
+OPEN POSITIONS COUNT: 0
+----------------------------------------------------------------------
+SCANNING: BTCUSDT
+Close         : 69550.0000
+EMA20         : 70622.2157
+EMA50         : 71742.2086
+EMA200        : 71684.5229
+RSI           : 31.96
+ATR           : 1278.0371
+ADX           : 35.50
+Volume        : 33.0179
+Vol_MA20      : 74.9613
+Trend OK      : False
+Momentum OK   : False
+RSI OK        : False
+Volume OK     : False
+ADX OK        : True
+BUY SIGNAL    : False
+NO TRADE - Conditions not met
+----------------------------------------------------------------------
+SCANNING: ETHUSDT
+Close         : 2128.8100
+EMA20         : 2180.1900
+EMA50         : 2219.8014
+EMA200        : 2175.8776
+RSI           : 30.17
+ATR           : 757.2512
+ADX           : 39.29
+Volume        : 279.5905
+Vol_MA20      : 957.4760
+Trend OK      : False
+Momentum OK   : False
+RSI OK        : False
+Volume OK     : False
+ADX OK        : True
+BUY SIGNAL    : False
+NO TRADE - Conditions not met
+----------------------------------------------------------------------

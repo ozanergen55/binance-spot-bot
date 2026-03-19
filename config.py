@@ -1,0 +1,24 @@
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+API_KEY = os.getenv("BINANCE_API_KEY")
+API_SECRET = os.getenv("BINANCE_API_SECRET")
+BASE_URL = os.getenv("BINANCE_BASE_URL", "https://testnet.binance.vision")
+
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+
+SYMBOLS = ["BTCUSDT", "ETHUSDT"]
+INTERVAL = "1h"
+CANDLE_LIMIT = 300
+
+RISK_PER_TRADE = 0.10
+STOP_LOSS_PCT = 0.07
+TAKE_PROFIT_PCT = 0.15
+BREAKEVEN_TRIGGER = 0.08
+MAX_OPEN_POSITIONS = 1
+QUOTE_ASSET = "USDT"
+
+TRADE_USDT_AMOUNT = 20
