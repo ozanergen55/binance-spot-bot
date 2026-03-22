@@ -8,16 +8,38 @@ from core.logger import log_trade
 from core.notifier import send_telegram_message
 
 import datetime
+import json
+import os
 
-now = datetime.datetime.now()
 
-# sabah 09:00 civarı
-if now.hour == 9:
-    send_telegram_message("☀️ BOT AKTİF - Sabah kontrol")
+def send_health_check():
+    now = datetime.datetime.now()
+    today = now.strftime("%Y-%m-%d")
+    file_path = "health_check.json"
 
-# akşam 21:00 civarı
-if now.hour == 21:
-    send_telegram_message("🌙 BOT AKTİF - Akşam kontrol")
+    if not os.path.exists(file_path):
+        data = {}
+    else:
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except (json.JSONDecodeError, OSError):
+            data = {}
+
+    # Sabah kontrolü: 09:00–09:59 arasında sadece 1 kez
+    if now.hour == 9:
+        if data.get("morning") != today:
+            send_telegram_message("☀️ BOT AKTİF - Sabah kontrol")
+            data["morning"] = today
+
+    # Akşam kontrolü: 21:00–21:59 arasında sadece 1 kez
+    if now.hour == 21:
+        if data.get("evening") != today:
+            send_telegram_message("🌙 BOT AKTİF - Akşam kontrol")
+            data["evening"] = today
+
+    with open(file_path, "w", encoding="utf-8") as f:
+        json.dump(data, f)
 
 
 def sync_open_positions_with_account(client):
@@ -101,10 +123,13 @@ def main():
     print("Server time:", client.get_server_time())
     print("-" * 70)
 
-    # 1) Önce açık pozisyonları senkronla
+    # Sağlık kontrol mesajı
+    send_health_check()
+
+    # Önce açık pozisyonları senkronla
     sync_open_positions_with_account(client)
 
-    # 2) Güncel açık pozisyonları tekrar yükle
+    # Güncel açık pozisyonları tekrar yükle
     open_positions = load_positions()
     print(f"OPEN POSITIONS COUNT: {len(open_positions)}")
     print("-" * 70)
@@ -113,7 +138,6 @@ def main():
         print("MAX OPEN POSITIONS LIMIT REACHED")
         return
 
-    # 3) Yeni sinyal tara
     for symbol in SYMBOLS:
         print(f"SCANNING: {symbol}")
 
@@ -263,7 +287,6 @@ def main():
                 f"OCO ID: {order_list_id}"
             )
 
-            # Tek seferde yalnızca 1 işlem aç
             break
 
         except Exception as e:
