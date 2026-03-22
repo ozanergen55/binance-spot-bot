@@ -153,3 +153,47 @@ ADX OK        : True
 BUY SIGNAL    : False
 NO TRADE - Conditions not met
 ----------------------------------------------------------------------
+------------------------------ 
+Paz 22.03.2026 21:13:53,41 
+Server time: {'serverTime': 1774203234805}
+----------------------------------------------------------------------
+NO OPEN POSITIONS TO SYNC
+----------------------------------------------------------------------
+OPEN POSITIONS COUNT: 0
+----------------------------------------------------------------------
+SCANNING: BTCUSDT
+Close         : 68709.3800
+EMA20         : 69024.2435
+EMA50         : 69630.6585
+EMA200        : 70844.0200
+RSI           : 37.14
+ATR           : 673.9988
+ADX           : 29.11
+Volume        : 10.7578
+Vol_MA20      : 55.7137
+Trend OK      : False
+Momentum OK   : False
+RSI OK        : False
+Volume OK     : False
+ADX OK        : True
+BUY SIGNAL    : False
+NO TRADE - Conditions not met
+----------------------------------------------------------------------
+SCANNING: ETHUSDT
+Close         : 2079.9100
+EMA20         : 2094.6272
+EMA50         : 2118.9592
+EMA200        : 2153.2519
+RSI           : 35.41
+ATR           : 189.4344
+ADX           : 65.25
+Volume        : 90.3466
+Vol_MA20      : 458.1644
+Trend OK      : False
+Momentum OK   : False
+RSI OK        : False
+Volume OK     : False
+ADX OK        : True
+BUY SIGNAL    : False
+NO TRADE - Conditions not met
+----------------------------------------------------------------------
