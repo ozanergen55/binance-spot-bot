@@ -6,6 +6,12 @@ from core.strategy import check_buy_signal
 from core.position_store import load_positions, has_open_position, add_position, remove_position
 from core.logger import log_trade
 from core.notifier import send_telegram_message
+from core.risk_guard import (
+    can_open_new_trade,
+    register_new_trade,
+    is_symbol_on_cooldown,
+    register_closed_trade_pnl,
+)
 
 import datetime
 import json
@@ -26,13 +32,11 @@ def send_health_check():
         except (json.JSONDecodeError, OSError):
             data = {}
 
-    # Sabah kontrolü: 09:00–09:59 arasında sadece 1 kez
     if now.hour == 9:
         if data.get("morning") != today:
             send_telegram_message("☀️ BOT AKTİF - Sabah kontrol")
             data["morning"] = today
 
-    # Akşam kontrolü: 21:00–21:59 arasında sadece 1 kez
     if now.hour == 21:
         if data.get("evening") != today:
             send_telegram_message("🌙 BOT AKTİF - Akşam kontrol")
@@ -74,13 +78,22 @@ def sync_open_positions_with_account(client):
             if list_status != "EXEC_STARTED":
                 print(f"POSITION CLOSED DETECTED FOR {symbol}")
 
+                entry_price = float(pos.get("entry_price", 0))
+                quantity = float(pos.get("quantity", 0))
+                take_profit_price = float(pos.get("take_profit_price", 0))
+                stop_price = float(pos.get("stop_price", 0))
+                stop_limit_price = float(pos.get("stop_limit_price", 0))
+
+                estimated_pnl = 0.0
+                register_closed_trade_pnl(symbol, estimated_pnl)
+
                 log_trade(
                     symbol=symbol,
-                    entry_price=pos.get("entry_price", 0),
-                    quantity=pos.get("quantity", 0),
-                    take_profit=pos.get("take_profit_price", 0),
-                    stop_price=pos.get("stop_price", 0),
-                    stop_limit_price=pos.get("stop_limit_price", 0),
+                    entry_price=entry_price,
+                    quantity=quantity,
+                    take_profit=take_profit_price,
+                    stop_price=stop_price,
+                    stop_limit_price=stop_limit_price,
                     buy_order_id=pos.get("buy_order_id", ""),
                     oco_order_list_id=order_list_id,
                     status="CLOSED"
@@ -123,13 +136,19 @@ def main():
     print("Server time:", client.get_server_time())
     print("-" * 70)
 
-    # Sağlık kontrol mesajı
     send_health_check()
-
-    # Önce açık pozisyonları senkronla
     sync_open_positions_with_account(client)
 
-    # Güncel açık pozisyonları tekrar yükle
+    can_trade, reason = can_open_new_trade(
+        max_daily_trades=3,
+        max_daily_loss=-30.0
+    )
+
+    if not can_trade:
+        print(reason)
+        print("-" * 70)
+        return
+
     open_positions = load_positions()
     print(f"OPEN POSITIONS COUNT: {len(open_positions)}")
     print("-" * 70)
@@ -143,6 +162,12 @@ def main():
 
         if has_open_position(symbol):
             print(f"SKIP: {symbol} already has an open position")
+            print("-" * 70)
+            continue
+
+        on_cooldown, cooldown_until = is_symbol_on_cooldown(symbol)
+        if on_cooldown:
+            print(f"SKIP: {symbol} cooldown active until {cooldown_until}")
             print("-" * 70)
             continue
 
@@ -167,6 +192,7 @@ def main():
             print(f"RSI OK        : {info['rsi_ok']}")
             print(f"Volume OK     : {info['volume_ok']}")
             print(f"ADX OK        : {info['adx_ok']}")
+            print(f"Score         : {info.get('score', 'N/A')}")
             print(f"BUY SIGNAL    : {signal}")
 
             if not signal:
@@ -263,6 +289,7 @@ def main():
             }
 
             add_position(symbol, position_data)
+            register_new_trade(symbol, cooldown_hours=6)
 
             log_trade(
                 symbol=symbol,

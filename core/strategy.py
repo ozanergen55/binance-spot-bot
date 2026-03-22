@@ -3,19 +3,14 @@ def check_buy_signal(df):
 
     trend_ok = last["ema20"] > last["ema50"]
     momentum_ok = last["close"] > last["ema20"]
-
-    # daha agresif
     rsi_ok = last["rsi"] > 48
     adx_ok = last["adx"] > 15
-
-    # volume biraz esnek
     volume_ok = last["volume"] > last["vol_ma20"] * 0.8
 
-    # kritik: tümü değil, çoğunluk
     conditions = [trend_ok, momentum_ok, rsi_ok, adx_ok, volume_ok]
     score = sum(conditions)
 
-    signal = score >= 4  # 5 yerine 4 yeter
+    signal = score >= 4
 
     debug = {
         "close": float(last["close"]),
@@ -32,7 +27,7 @@ def check_buy_signal(df):
         "rsi_ok": rsi_ok,
         "volume_ok": volume_ok,
         "adx_ok": adx_ok,
-        "score": score
+        "score": score,
     }
 
     return signal, debug
