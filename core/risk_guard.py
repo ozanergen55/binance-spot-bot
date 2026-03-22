@@ -10,33 +10,27 @@ def _today():
     return datetime.datetime.now().strftime("%Y-%m-%d")
 
 
+def _default_stats():
+    return {
+        "date": _today(),
+        "trade_count": 0,
+        "realized_pnl": 0.0,
+        "cooldowns": {}
+    }
+
+
 def load_daily_stats():
     if not os.path.exists(DAILY_STATS_FILE):
-        return {
-            "date": _today(),
-            "trade_count": 0,
-            "realized_pnl": 0.0,
-            "cooldowns": {}
-        }
+        return _default_stats()
 
     try:
         with open(DAILY_STATS_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
     except (json.JSONDecodeError, OSError):
-        data = {
-            "date": _today(),
-            "trade_count": 0,
-            "realized_pnl": 0.0,
-            "cooldowns": {}
-        }
+        return _default_stats()
 
     if data.get("date") != _today():
-        data = {
-            "date": _today(),
-            "trade_count": 0,
-            "realized_pnl": 0.0,
-            "cooldowns": {}
-        }
+        return _default_stats()
 
     return data
 
@@ -44,6 +38,11 @@ def load_daily_stats():
 def save_daily_stats(data):
     with open(DAILY_STATS_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=4)
+
+
+def ensure_daily_stats_file():
+    data = load_daily_stats()
+    save_daily_stats(data)
 
 
 def can_open_new_trade(max_daily_trades=3, max_daily_loss=-30.0):

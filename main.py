@@ -11,6 +11,7 @@ from core.risk_guard import (
     register_new_trade,
     is_symbol_on_cooldown,
     register_closed_trade_pnl,
+    ensure_daily_stats_file,
 )
 
 import datetime
@@ -45,6 +46,54 @@ def send_health_check():
     with open(file_path, "w", encoding="utf-8") as f:
         json.dump(data, f)
 
+def calculate_realized_pnl_from_oco_status(pos, oco_status):
+    entry_price = float(pos.get("entry_price", 0))
+    quantity = float(pos.get("quantity", 0))
+
+    orders = oco_status.get("orders", [])
+    order_reports = oco_status.get("orderReports", [])
+
+    if not entry_price or not quantity or not order_reports:
+        return 0.0, "UNKNOWN"
+
+    tp_order_id = None
+    sl_order_id = None
+
+    for order in orders:
+        side = order.get("side")
+        order_id = order.get("orderId")
+        if side == "SELL":
+            if tp_order_id is None:
+                tp_order_id = order_id
+            else:
+                sl_order_id = order_id
+
+    executed_exit_price = None
+    exit_reason = "UNKNOWN"
+
+    for report in order_reports:
+        report_order_id = report.get("orderId")
+        status = report.get("status")
+        executed_qty = float(report.get("executedQty", 0) or 0)
+        cumulative_quote = float(report.get("cummulativeQuoteQty", 0) or 0)
+
+        if status == "FILLED" and executed_qty > 0:
+            executed_exit_price = cumulative_quote / executed_qty
+
+            if report_order_id == tp_order_id:
+                exit_reason = "TAKE_PROFIT"
+            elif report_order_id == sl_order_id:
+                exit_reason = "STOP_LOSS"
+            else:
+                exit_reason = "FILLED"
+
+            break
+
+    if executed_exit_price is None:
+        return 0.0, exit_reason
+
+    pnl = (executed_exit_price - entry_price) * quantity
+    return pnl, exit_reason
 
 def sync_open_positions_with_account(client):
     positions = load_positions()
@@ -84,8 +133,11 @@ def sync_open_positions_with_account(client):
                 stop_price = float(pos.get("stop_price", 0))
                 stop_limit_price = float(pos.get("stop_limit_price", 0))
 
-                estimated_pnl = 0.0
-                register_closed_trade_pnl(symbol, estimated_pnl)
+                realized_pnl, exit_reason = calculate_realized_pnl_from_oco_status(pos, oco_status)
+                register_closed_trade_pnl(symbol, realized_pnl)
+
+                print(f"EXIT REASON: {exit_reason}")
+                print(f"REALIZED PNL: {realized_pnl:.4f}")
 
                 log_trade(
                     symbol=symbol,
@@ -102,6 +154,8 @@ def sync_open_positions_with_account(client):
                 send_telegram_message(
                     f"❌ POSITION CLOSED\n"
                     f"{symbol}\n"
+                    f"Reason: {exit_reason}\n"
+                    f"PnL: {realized_pnl:.2f}\n"
                     f"OCO Status: {list_status}"
                 )
 
@@ -132,6 +186,7 @@ def sync_open_positions_with_account(client):
 
 def main():
     client = BinanceClient()
+    ensure_daily_stats_file()
 
     print("Server time:", client.get_server_time())
     print("-" * 70)
