@@ -204,6 +204,21 @@ class BinanceClient:
         r.raise_for_status()
         return r.json()
     
+    def get_my_trades(self, symbol):
+        url = f"{self.base_url}/api/v3/myTrades"
+
+        params = {
+            "symbol": symbol,
+            "timestamp": int(time.time() * 1000),
+            "recvWindow": 5000
+        }
+
+        signed = self._sign_params(params)
+
+        r = self.session.get(f"{url}?{signed}", timeout=10)
+        r.raise_for_status()
+        return r.json()
+    
     def market_sell(self, symbol, quantity):
         url = f"{self.base_url}/api/v3/order"
 

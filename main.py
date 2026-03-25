@@ -33,67 +33,64 @@ def send_health_check():
         except (json.JSONDecodeError, OSError):
             data = {}
 
-    if now.hour == 9:
-        if data.get("morning") != today:
-            send_telegram_message("☀️ BOT AKTİF - Sabah kontrol")
-            data["morning"] = today
+    if now.hour == 9 and data.get("morning") != today:
+        send_telegram_message("☀️ BOT AKTİF - Sabah kontrol")
+        data["morning"] = today
 
-    if now.hour == 21:
-        if data.get("evening") != today:
-            send_telegram_message("🌙 BOT AKTİF - Akşam kontrol")
-            data["evening"] = today
+    if now.hour == 21 and data.get("evening") != today:
+        send_telegram_message("🌙 BOT AKTİF - Akşam kontrol")
+        data["evening"] = today
 
     with open(file_path, "w", encoding="utf-8") as f:
-        json.dump(data, f)
+        json.dump(data, f, ensure_ascii=False, indent=4)
 
-def calculate_realized_pnl_from_oco_status(pos, oco_status):
+
+def get_real_exit_price(client, symbol):
+    try:
+        trades = client.get_my_trades(symbol)
+    except Exception:
+        return None
+
+    if not trades:
+        return None
+
+    # En son gerçekleşen SELL trade'i bulmaya çalış
+    for trade in reversed(trades):
+        if trade.get("isBuyer") is False:
+            qty = float(trade.get("qty", 0) or 0)
+            quote_qty = float(trade.get("quoteQty", 0) or 0)
+
+            if qty > 0 and quote_qty > 0:
+                return quote_qty / qty
+
+            price = float(trade.get("price", 0) or 0)
+            if price > 0:
+                return price
+
+    return None
+
+
+def get_exit_reason_and_pnl(pos, exit_price):
     entry_price = float(pos.get("entry_price", 0))
     quantity = float(pos.get("quantity", 0))
+    tp_price = float(pos.get("take_profit_price", 0))
+    stop_price = float(pos.get("stop_price", 0))
 
-    orders = oco_status.get("orders", [])
-    order_reports = oco_status.get("orderReports", [])
+    if exit_price is None:
+        return "UNKNOWN", 0.0
 
-    if not entry_price or not quantity or not order_reports:
-        return 0.0, "UNKNOWN"
+    pnl = (exit_price - entry_price) * quantity
 
-    tp_order_id = None
-    sl_order_id = None
+    # Çıkış sebebini yaklaşık olarak belirle
+    if tp_price > 0 and abs(exit_price - tp_price) < abs(exit_price - stop_price):
+        reason = "TAKE_PROFIT"
+    elif stop_price > 0:
+        reason = "STOP_LOSS" if exit_price <= entry_price else "TAKE_PROFIT"
+    else:
+        reason = "UNKNOWN"
 
-    for order in orders:
-        side = order.get("side")
-        order_id = order.get("orderId")
-        if side == "SELL":
-            if tp_order_id is None:
-                tp_order_id = order_id
-            else:
-                sl_order_id = order_id
+    return reason, pnl
 
-    executed_exit_price = None
-    exit_reason = "UNKNOWN"
-
-    for report in order_reports:
-        report_order_id = report.get("orderId")
-        status = report.get("status")
-        executed_qty = float(report.get("executedQty", 0) or 0)
-        cumulative_quote = float(report.get("cummulativeQuoteQty", 0) or 0)
-
-        if status == "FILLED" and executed_qty > 0:
-            executed_exit_price = cumulative_quote / executed_qty
-
-            if report_order_id == tp_order_id:
-                exit_reason = "TAKE_PROFIT"
-            elif report_order_id == sl_order_id:
-                exit_reason = "STOP_LOSS"
-            else:
-                exit_reason = "FILLED"
-
-            break
-
-    if executed_exit_price is None:
-        return 0.0, exit_reason
-
-    pnl = (executed_exit_price - entry_price) * quantity
-    return pnl, exit_reason
 
 def sync_open_positions_with_account(client):
     positions = load_positions()
@@ -127,25 +124,22 @@ def sync_open_positions_with_account(client):
             if list_status != "EXEC_STARTED":
                 print(f"POSITION CLOSED DETECTED FOR {symbol}")
 
-                entry_price = float(pos.get("entry_price", 0))
-                quantity = float(pos.get("quantity", 0))
-                take_profit_price = float(pos.get("take_profit_price", 0))
-                stop_price = float(pos.get("stop_price", 0))
-                stop_limit_price = float(pos.get("stop_limit_price", 0))
+                exit_price = get_real_exit_price(client, symbol)
+                exit_reason, realized_pnl = get_exit_reason_and_pnl(pos, exit_price)
 
-                realized_pnl, exit_reason = calculate_realized_pnl_from_oco_status(pos, oco_status)
                 register_closed_trade_pnl(symbol, realized_pnl)
 
-                print(f"EXIT REASON: {exit_reason}")
-                print(f"REALIZED PNL: {realized_pnl:.4f}")
+                print(f"EXIT PRICE   : {exit_price}")
+                print(f"EXIT REASON  : {exit_reason}")
+                print(f"REALIZED PNL : {realized_pnl:.4f}")
 
                 log_trade(
                     symbol=symbol,
-                    entry_price=entry_price,
-                    quantity=quantity,
-                    take_profit=take_profit_price,
-                    stop_price=stop_price,
-                    stop_limit_price=stop_limit_price,
+                    entry_price=float(pos.get("entry_price", 0)),
+                    quantity=float(pos.get("quantity", 0)),
+                    take_profit=float(pos.get("take_profit_price", 0)),
+                    stop_price=float(pos.get("stop_price", 0)),
+                    stop_limit_price=float(pos.get("stop_limit_price", 0)),
                     buy_order_id=pos.get("buy_order_id", ""),
                     oco_order_list_id=order_list_id,
                     status="CLOSED"
@@ -242,12 +236,13 @@ def main():
             print(f"ADX           : {info['adx']:.2f}")
             print(f"Volume        : {info['volume']:.4f}")
             print(f"Vol_MA20      : {info['vol_ma20']:.4f}")
-            print(f"Trend OK      : {info['trend_ok']}")
-            print(f"Momentum OK   : {info['momentum_ok']}")
-            print(f"RSI OK        : {info['rsi_ok']}")
-            print(f"Volume OK     : {info['volume_ok']}")
-            print(f"ADX OK        : {info['adx_ok']}")
-            print(f"Score         : {info.get('score', 'N/A')}")
+            print(f"Trend OK      : {info.get('trend_ok')}")
+            print(f"Momentum OK   : {info.get('momentum_ok')}")
+            print(f"RSI OK        : {info.get('rsi_ok')}")
+            print(f"Volume OK     : {info.get('volume_ok')}")
+            print(f"ADX OK        : {info.get('adx_ok')}")
+            if "score" in info:
+                print(f"Score         : {info['score']}")
             print(f"BUY SIGNAL    : {signal}")
 
             if not signal:
@@ -255,7 +250,7 @@ def main():
                 print("-" * 70)
                 continue
 
-            price = info["close"]
+            price = float(info["close"])
 
             print(f"BUY SIGNAL DETECTED FOR {symbol}")
             print("-" * 70)
@@ -298,24 +293,26 @@ def main():
                 f"Entry: {entry_price:.2f}"
             )
 
-            take_profit_price = entry_price * 1.02
-            stop_price = entry_price * 0.99
-            stop_limit_price = entry_price * 0.989
+            atr = float(info["atr"])
 
-            print("EXIT PLAN")
+            raw_tp = entry_price + (1.8 * atr)
+            raw_stop = entry_price - (1.2 * atr)
+            raw_stop_limit = raw_stop * 0.999
+
+            print("RAW EXIT PLAN")
             print(f"Entry Price   : {entry_price:.4f}")
             print(f"Executed Qty  : {executed_qty:.8f}")
-            print(f"Take Profit   : {take_profit_price:.4f}")
-            print(f"Stop Trigger  : {stop_price:.4f}")
-            print(f"Stop Limit    : {stop_limit_price:.4f}")
+            print(f"Raw TP        : {raw_tp:.4f}")
+            print(f"Raw Stop      : {raw_stop:.4f}")
+            print(f"Raw StopLimit : {raw_stop_limit:.4f}")
             print("-" * 70)
 
             oco_result = client.place_exit_oco_sell(
                 symbol=symbol,
                 quantity=executed_qty,
-                take_profit_price=take_profit_price,
-                stop_price=stop_price,
-                stop_limit_price=stop_limit_price
+                take_profit_price=raw_tp,
+                stop_price=raw_stop,
+                stop_limit_price=raw_stop_limit
             )
 
             print("OCO EXIT ORDER OK")
@@ -325,8 +322,8 @@ def main():
             send_telegram_message(
                 f"🎯 EXIT SET\n"
                 f"{symbol}\n"
-                f"TP: {take_profit_price:.2f}\n"
-                f"SL: {stop_price:.2f}"
+                f"TP: {raw_tp:.2f}\n"
+                f"SL: {raw_stop:.2f}"
             )
 
             order_list_id = oco_result.get("orderListId", "")
@@ -335,9 +332,9 @@ def main():
                 "symbol": symbol,
                 "entry_price": entry_price,
                 "quantity": executed_qty,
-                "take_profit_price": take_profit_price,
-                "stop_price": stop_price,
-                "stop_limit_price": stop_limit_price,
+                "take_profit_price": raw_tp,
+                "stop_price": raw_stop,
+                "stop_limit_price": raw_stop_limit,
                 "buy_order_id": buy_result.get("orderId"),
                 "oco_order_list_id": order_list_id,
                 "status": "OPEN"
@@ -350,9 +347,9 @@ def main():
                 symbol=symbol,
                 entry_price=entry_price,
                 quantity=executed_qty,
-                take_profit=take_profit_price,
-                stop_price=stop_price,
-                stop_limit_price=stop_limit_price,
+                take_profit=raw_tp,
+                stop_price=raw_stop,
+                stop_limit_price=raw_stop_limit,
                 buy_order_id=buy_result.get("orderId"),
                 oco_order_list_id=order_list_id,
                 status="OPEN"

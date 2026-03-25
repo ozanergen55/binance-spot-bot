@@ -3,14 +3,11 @@ def check_buy_signal(df):
 
     trend_ok = last["ema20"] > last["ema50"]
     momentum_ok = last["close"] > last["ema20"]
-    rsi_ok = last["rsi"] > 48
-    adx_ok = last["adx"] > 15
-    volume_ok = last["volume"] > last["vol_ma20"] * 0.8
+    rsi_ok = last["rsi"] > 50   # 52 → 50
+    adx_ok = last["adx"] > 18
+    volume_ok = last["volume"] > last["vol_ma20"] * 0.9
 
-    conditions = [trend_ok, momentum_ok, rsi_ok, adx_ok, volume_ok]
-    score = sum(conditions)
-
-    signal = score >= 4
+    signal = trend_ok and momentum_ok and rsi_ok and adx_ok and volume_ok
 
     debug = {
         "close": float(last["close"]),
@@ -27,7 +24,6 @@ def check_buy_signal(df):
         "rsi_ok": rsi_ok,
         "volume_ok": volume_ok,
         "adx_ok": adx_ok,
-        "score": score,
     }
 
     return signal, debug
