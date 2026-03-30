@@ -54,7 +54,6 @@ def get_real_exit_price(client, symbol):
     if not trades:
         return None
 
-    # En son gerçekleşen SELL trade'i bulmaya çalış
     for trade in reversed(trades):
         if trade.get("isBuyer") is False:
             qty = float(trade.get("qty", 0) or 0)
@@ -81,7 +80,6 @@ def get_exit_reason_and_pnl(pos, exit_price):
 
     pnl = (exit_price - entry_price) * quantity
 
-    # Çıkış sebebini yaklaşık olarak belirle
     if tp_price > 0 and abs(exit_price - tp_price) < abs(exit_price - stop_price):
         reason = "TAKE_PROFIT"
     elif stop_price > 0:
@@ -227,23 +225,28 @@ def main():
 
             signal, info = check_buy_signal(df)
 
-            print(f"Close         : {info['close']:.4f}")
-            print(f"EMA20         : {info['ema20']:.4f}")
-            print(f"EMA50         : {info['ema50']:.4f}")
-            print(f"EMA200        : {info['ema200']:.4f}")
-            print(f"RSI           : {info['rsi']:.2f}")
-            print(f"ATR           : {info['atr']:.4f}")
-            print(f"ADX           : {info['adx']:.2f}")
-            print(f"Volume        : {info['volume']:.4f}")
-            print(f"Vol_MA20      : {info['vol_ma20']:.4f}")
-            print(f"Trend OK      : {info.get('trend_ok')}")
-            print(f"Momentum OK   : {info.get('momentum_ok')}")
-            print(f"RSI OK        : {info.get('rsi_ok')}")
-            print(f"Volume OK     : {info.get('volume_ok')}")
-            print(f"ADX OK        : {info.get('adx_ok')}")
-            if "score" in info:
-                print(f"Score         : {info['score']}")
-            print(f"BUY SIGNAL    : {signal}")
+            print(f"Close           : {info['close']:.4f}")
+            print(f"EMA20           : {info['ema20']:.4f}")
+            print(f"EMA50           : {info['ema50']:.4f}")
+            print(f"EMA200          : {info['ema200']:.4f}")
+            print(f"RSI             : {info['rsi']:.2f}")
+            print(f"ATR             : {info['atr']:.4f}")
+            print(f"ADX             : {info['adx']:.2f}")
+            print(f"Volume          : {info['volume']:.4f}")
+            print(f"Vol_MA20        : {info['vol_ma20']:.4f}")
+            print(f"VWAP            : {info['vwap']:.4f}")
+            print(f"BB_LOW          : {info['bb_low']:.4f}")
+            print(f"BB_MID          : {info['bb_mid']:.4f}")
+            print(f"BB_HIGH         : {info['bb_high']:.4f}")
+            print(f"Trend OK        : {info.get('trend_ok')}")
+            print(f"Pullback OK     : {info.get('pullback_ok')}")
+            print(f"RSI Zone OK     : {info.get('rsi_zone_ok')}")
+            print(f"RSI Recover OK  : {info.get('rsi_recover_ok')}")
+            print(f"VWAP OK         : {info.get('vwap_ok')}")
+            print(f"BB OK           : {info.get('bb_ok')}")
+            print(f"Volume OK       : {info.get('volume_ok')}")
+            print(f"Score           : {info.get('score')}")
+            print(f"BUY SIGNAL      : {signal}")
 
             if not signal:
                 print("NO TRADE - Conditions not met")
@@ -285,6 +288,7 @@ def main():
                 continue
 
             entry_price = cumm_quote / executed_qty
+            atr = float(info["atr"])
 
             send_telegram_message(
                 f"✅ BUY EXECUTED\n"
@@ -293,18 +297,16 @@ def main():
                 f"Entry: {entry_price:.2f}"
             )
 
-            atr = float(info["atr"])
-
-            raw_tp = entry_price + (1.8 * atr)
-            raw_stop = entry_price - (1.2 * atr)
+            raw_tp = entry_price + (2.0 * atr)
+            raw_stop = entry_price - (1.0 * atr)
             raw_stop_limit = raw_stop * 0.999
 
             print("RAW EXIT PLAN")
-            print(f"Entry Price   : {entry_price:.4f}")
-            print(f"Executed Qty  : {executed_qty:.8f}")
-            print(f"Raw TP        : {raw_tp:.4f}")
-            print(f"Raw Stop      : {raw_stop:.4f}")
-            print(f"Raw StopLimit : {raw_stop_limit:.4f}")
+            print(f"Entry Price     : {entry_price:.4f}")
+            print(f"Executed Qty    : {executed_qty:.8f}")
+            print(f"Raw TP          : {raw_tp:.4f}")
+            print(f"Raw Stop        : {raw_stop:.4f}")
+            print(f"Raw StopLimit   : {raw_stop_limit:.4f}")
             print("-" * 70)
 
             oco_result = client.place_exit_oco_sell(
